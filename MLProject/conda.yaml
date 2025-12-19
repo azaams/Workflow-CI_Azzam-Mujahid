@@ -1,0 +1,14 @@
+name: spotify-churn-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12.7
+  - pip
+  - pip:
+      - pandas
+      - numpy
+      - scikit-learn
+      - mlflow==2.19.0
+      - matplotlib
+      - seaborn
+      - dagshub

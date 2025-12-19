@@ -1,0 +1,56 @@
+name: CI/CD MLflow Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: spotify-churn-model
+  DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+  train-build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run MLflow Project
+      run: |
+        mlflow run MLproject --env-manager=local
+
+    - name: Get Latest Run ID
+      run: |
+        RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
+        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+        echo "Latest MLflow Run ID: $RUN_ID"
+
+    - name: Build Docker Image
+      run: |
+        mlflow models build-docker \
+          -m "runs:/$RUN_ID/model" \
+          -n "$DOCKER_USER/$IMAGE_NAME:latest" \
+          --enable-mlserver
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Push Docker Image
+      run: |
+        docker push "$DOCKER_USER/$IMAGE_NAME:latest"
