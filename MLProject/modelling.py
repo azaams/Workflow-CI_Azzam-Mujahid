@@ -15,7 +15,6 @@ import seaborn as sns
 def main(n_estimators, max_depth, dataset_path):
     TARGET_COLUMN = "churned"
     
-    mlflow.set_experiment("Spotify_Churn_Production")
 
     with mlflow.start_run():
         if not os.path.exists(dataset_path):
