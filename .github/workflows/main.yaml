@@ -15,13 +15,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
+    - name: Run actions/checkout@v4
       uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Set up Python 3.12.7
       uses: actions/setup-python@v5
       with:
-        python-version: "3.12"
+        python-version: "3.12.7"
+
+    - name: Check Env
+      run: |
+        echo "Python Version:"
+        python --version
+        echo "Pip Version:"
+        pip --version
+        echo "Working directory:"
+        pwd
 
     - name: Install Dependencies
       run: |
@@ -38,6 +47,12 @@ jobs:
         echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
         echo "Latest MLflow Run ID: $RUN_ID"
 
+    - name: Upload MLflow Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: mlruns/
+
     - name: Build Docker Image
       run: |
         mlflow models build-docker \
@@ -51,6 +66,12 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    - name: Tag Docker Image
+      run: |
+        docker tag  "$DOCKER_USER/$IMAGE_NAME:latest" \
+                    "$DOCKER_USER/$IMAGE_NAME:$RUN_ID"
+
     - name: Push Docker Image
       run: |
         docker push "$DOCKER_USER/$IMAGE_NAME:latest"
+        docker push "$DOCKER_USER/$IMAGE_NAME:$RUN_ID"
